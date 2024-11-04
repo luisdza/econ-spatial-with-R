@@ -1,1 +1,1 @@
-# econ-spatial-with-R
+# econ-spatial-with-r
