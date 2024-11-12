@@ -1,0 +1,93 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# load the necessary libraries
+library(ggplot2)
+library(sf)
+library(leaflet)
+
+# Define the processed shapes directory
+processed_shapes_dir <- "processed-shapes"
+
+# Read the shapefiles
+province_shapes <- readRDS(file.path(processed_shapes_dir, "Province2018.rds"))
+local_municipal_shapes <- readRDS(file.path(processed_shapes_dir, "MDB_Local_Municipal_Boundary_2018.rds"))
+district_municipal_shapes <- readRDS(file.path(processed_shapes_dir, "DistrictMunicipalities2018.rds"))
+```
+
+# Shapes
+```{r}
+# plot the overlapping shapes in ggplot. make the province outline thicker in green, the local municipalities in blue, and the district municipalities in red
+ggplot() +
+    #geom_sf(data = local_municipal_shapes, color = "#1E90FF", fill = NA, size = 0.5) + # Light blue for local municipalities
+    #geom_sf(data = district_municipal_shapes, color = "#B22222", fill = NA, size = 0.6, linetype = "dashed") + # Dashed red for district municipalities
+    geom_sf(data = province_shapes, color = "#2E8B57", fill = NA, size = 2) + # Thicker green outline for provinces
+    theme_minimal() +
+    theme(
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "grey90"),
+        plot.margin = margin(10, 10, 10, 10)
+    ) +
+    labs(
+        title = "Geographic Boundaries of Provinces, Local Municipalities, and District Municipalities",
+        caption = "Province boundaries in green, local municipalities in blue, district municipalities in dashed red"
+    )
+```
+
+```{r}
+# plot the overlapping shapes in ggplot. make the province outline thicker in green, the local municipalities in blue, and the district municipalities in red
+ggplot() +
+    geom_sf(data = local_municipal_shapes, color = "#1E90FF", fill = NA, size = 0.5) + # Light blue for local municipalities
+    geom_sf(data = district_municipal_shapes, color = "#B22222", fill = NA, size = 0.6, linetype = "dashed") + # Dashed red for district municipalities
+    geom_sf(data = province_shapes, color = "#2E8B57", fill = NA, size = 2) + # Thicker green outline for provinces
+    theme_minimal() +
+    theme(
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "grey90"),
+        plot.margin = margin(10, 10, 10, 10)
+    ) +
+    labs(
+        title = "Geographic Boundaries of Provinces, Local Municipalities, and District Municipalities",
+        caption = "Province boundaries in green, local municipalities in blue, district municipalities in dashed red"
+    )
+```
+
+# output this map as a leaflet map
+```{r}
+library(htmlwidgets)
+# Create a leaflet map with the shapes
+# Transform the shapes to EPSG:4326
+province_shapes <- st_transform(province_shapes, 4326)
+local_municipal_shapes <- st_transform(local_municipal_shapes, 4326)
+district_municipal_shapes <- st_transform(district_municipal_shapes, 4326)
+
+# Create the leaflet map
+# Assuming local_municipal_shapes has columns "name" and "population"
+map <- leaflet() %>%
+    addProviderTiles("CartoDB.Positron") %>%
+    addPolygons(data = province_shapes, color = "#2E8B57", weight = 2, fillOpacity = 0.2) %>%
+    addPolygons(
+        data = local_municipal_shapes, 
+        color = "#1E90FF", 
+        weight = 1, 
+        fillOpacity = 0.2, 
+        popup = ~paste(
+            "<strong>Municipality:</strong>", MUNICNAME, "<br>",
+            "<strong>Province:</strong>", PROVINCE, "<br>",
+            "<strong>District:</strong>", DISTRICT
+        )
+    ) %>%
+    addPolygons(data = district_municipal_shapes, color = "#B22222", weight = 1, fillOpacity = 0.2) %>%
+    addLegend("bottomright", colors = c("#2E8B57", "#1E90FF", "#B22222"),
+              labels = c("Province", "Local Municipality", "District Municipality"), 
+              title = "Shapes")
+
+# Save as HTML
+saveWidget(map, "leaflet_map.html")
+
+```
